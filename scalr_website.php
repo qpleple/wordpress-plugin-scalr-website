@@ -26,4 +26,3 @@ function scalr_login_page() {
     )));
 }
 add_shortcode('scalr_login_page', 'scalr_login_page');
-
