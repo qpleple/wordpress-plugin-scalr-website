@@ -8,64 +8,71 @@ Author: Quentin Pleplé
 License: Apache
 */
 
-require_once dirname(__FILE__) . "/scalr_http_utils.php";
-require_once dirname(__FILE__) . "/scalr_exception.php";
+require_once dirname(__FILE__) . "/scalr_utils.php";
+require_once dirname(__FILE__) . "/scalr_exceptions.php";
+
+define("TEMPLATES_PATH", dirname(__FILE__) . "/templates/");
 
 function scalr_login_page() {
     if (!isset($_POST['email']) || !isset($_POST['password'])) {
         return;
     }
     
-    $str = "";
     try {
-        login_user($_POST['email'], $_POST['password']);
+        // DEBUG
+        //login_user($_POST['email'], $_POST['password']);
+        return scalr_login_user("quentin@melix.net", "blablabla");
     } catch (Exception $e) {
-        $str .= '<div id="login-error">';
         if ($e instanceof UserScalrException) {
-            $str .= $e->getMessage();
+            return scalr_render_template('error.html', array(
+                'error_message' => $e->getMessage(),
+            ));
         } else {
-            email_on_exception($e);
-            $str .= "Oops, something went wrong. An email has been sent to us. Contact support if you cannot login anymore.";
-            // TODO : var_dump only for debuging, to be deleted
-            var_dump($e);
+            scalr_email_on_exception($e);
+
+            return scalr_render_template('error.html', array(
+                'error_message' => "Oops, something went wrong. An email has been sent to us. Contact support if you cannot login anymore.",
+            ));
         }
-        $str .= '</div>';
     }
-    
-    return $str;
 }
 add_shortcode('scalr_login_page', 'scalr_login_page');
 
-function login_user($email, $pass) {
+function scalr_login_user($email, $password) {
     if (empty($email)) {
         throw new UserScalrException(EMAIL_EMPTY_MSG, EMAIL_EMPTY);
     }
+    
+    if (empty($password)) {
+        throw new UserScalrException(PASSWORD_EMPTY_MSG, PASSWORD_EMPTY);
+    }    
     
     // Test email valid
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         throw new UserScalrException(BAD_EMAIL_FORMAT_MSG, BAD_EMAIL_FORMAT);
     }
-        
-    $http_response = http_post("https://my.scalr.net/guest/xLogin/", array(
+    
+    $http_response = scalr_http_post("https://my.scalr.net/guest/xLogin/", array(
         'scalrLogin' => $email,
         'scalrPass' => $password,
     ));
     
     if (!is_array($http_response) || !array_key_exists("code", $http_response) || $http_response['code'] != "200") {
-        return;
+        throw new AdminScalrException(sprintf(BAD_HTTP_RESPONSE_MSG, var_dump_str($http_response)), BAD_HTTP_RESPONSE);
     }
     
     $response = @json_decode($http_response['body']);
     if (empty($response) || !property_exists($response, "success")) {
-        return;
+        throw new AdminScalrException(sprintf(BAD_JSON_RESPONSE_MSG, var_dump_str($http_response['body'])), BAD_JSON_RESPONSE);
     }
     
     if (!$response->success) {
-        echo $response->errorMessage;
-        return;
+        throw new UserScalrException($response->errorMessage, MY_SCALR_NET_ERROR);
     }
+    
+    // success
+    // TODO : forward cookie
+    // TODO : redirect to http://my.scalr.net
+    return "SUCCESS";
 }
 
-function email_on_exception($exception) {
-    # code...
-}
