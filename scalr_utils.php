@@ -67,3 +67,9 @@ function parse_http_response($response) {
         'body' => $response_body,
     ); 
 }
+
+function var_dump_str($obj) {
+    ob_start();
+    var_dump($obj);
+    return ob_get_clean();
+}
