@@ -1,4 +1,6 @@
 <?php
+// Make a HTTP POST request to $url with the arguments
+// in the array $arg
 function scalr_http_post($url, $args) {
     if (!scalr_check_curl_functions()) {
         return;
@@ -47,6 +49,10 @@ function scalr_check_curl_functions() {
            function_exists("curl_close"); 
 }
 
+// Parse an HTTP response and return an array with :
+// - code
+// - headers in an array
+// - body
 function scalr_parse_http_response($response) { 
     // Split response into header and body sections 
     list($response_headers, $response_body) = explode("\r\n\r\n", $response, 2); 
@@ -70,12 +76,15 @@ function scalr_parse_http_response($response) {
     ); 
 }
 
+// A var_dump() that returns a string
 function scalr_var_dump_str($obj) {
     ob_start();
     var_dump($obj);
     return ob_get_clean();
 }
 
+// returns a string with the content of the file $templateName
+// and replacing the value given in the array $args
 function scalr_render_template($templateName, $args) {
     $templateFullPath = TEMPLATES_PATH . $templateName;
     if (!file_exists($templateFullPath)) {
@@ -90,6 +99,8 @@ function scalr_render_template($templateName, $args) {
     return $content;
 }
 
+// Sends an email to the administrator of the blog (set in Settings > General)
+// with the content of the exception given
 function scalr_email_on_exception($exception) {
     $content = scalr_render_template('email_on_error.eml', array(
         'error_message' => $exception,
