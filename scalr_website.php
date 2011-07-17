@@ -16,31 +16,39 @@ function scalr_login_page() {
         return;
     }
     
+    $str = "";
     try {
         login_user($_POST['email'], $_POST['password']);
     } catch (Exception $e) {
-        echo '<div id="login-error">';
-        if ($e instanceof ScalrException) {
-            echo $e->getMessage();
+        $str .= '<div id="login-error">';
+        if ($e instanceof UserScalrException) {
+            $str .= $e->getMessage();
         } else {
             email_on_exception($e);
-            echo "Oops, something went wrong. An email has been sent to us. Contact support if you cannot login anymore.";
+            $str .= "Oops, something went wrong. An email has been sent to us. Contact support if you cannot login anymore.";
+            // TODO : var_dump only for debuging, to be deleted
+            var_dump($e);
         }
-        echo '</div>';
+        $str .= '</div>';
     }
-
+    
+    return $str;
 }
 add_shortcode('scalr_login_page', 'scalr_login_page');
 
 function login_user($email, $pass) {
-    //// Test email valid
-    //if (!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
-    //    return;
-    //}
+    if (empty($email)) {
+        throw new UserScalrException(EMAIL_EMPTY_MSG, EMAIL_EMPTY);
+    }
     
+    // Test email valid
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new UserScalrException(BAD_EMAIL_FORMAT_MSG, BAD_EMAIL_FORMAT);
+    }
+        
     $http_response = http_post("https://my.scalr.net/guest/xLogin/", array(
-        'scalrLogin' => $_POST['email'],
-        'scalrPass' => $_POST['password'],
+        'scalrLogin' => $email,
+        'scalrPass' => $password,
     ));
     
     if (!is_array($http_response) || !array_key_exists("code", $http_response) || $http_response['code'] != "200") {
