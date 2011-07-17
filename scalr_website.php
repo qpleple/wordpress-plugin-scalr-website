@@ -13,12 +13,14 @@ require_once dirname(__FILE__) . "/scalr_exceptions.php";
 
 define("TEMPLATES_PATH", dirname(__FILE__) . "/templates/");
 
+// Makes the function scalr_send_headers() called on all the pages
+// Right after headers have been sent (it is still time to send some)
 add_action('send_headers', 'scalr_send_headers', 10, 1);
-add_shortcode('scalr_login_page', 'scalr_login_page');
 
-/**
- * This function will be called on every page
- */
+// On success, send headers:
+// - Set-Cookie: to set to client the login cookie
+// - Location: to redirect to https://my.scalr.net
+// On failure, put the error message into global variable $scalr_login_error_message
 function scalr_send_headers($WP) {
     global $scalr_login_error_message;
     
@@ -33,9 +35,7 @@ function scalr_send_headers($WP) {
     }
     
     try {
-        // DEBUG
-        //login_user($_POST['email'], $_POST['password']);
-        return scalr_check_and_login_user("quentin@melix.net", "blablabla");
+        return scalr_check_and_login_user($_POST['email'], $_POST['password']);
     } catch (Exception $e) {
         if ($e instanceof UserScalrException) {
             return scalr_render_template('error.html', array(
@@ -52,6 +52,12 @@ function scalr_send_headers($WP) {
     
 }
 
+// Makes the function scalr_login_page() called on occurence of "[scalr_login_page]"
+// Should be in the login form, where to display errors
+add_shortcode('scalr_login_page', 'scalr_login_page');
+
+// Displays the content of $scalr_login_error_message that
+// is set on failure of login by scalr_send_headers()
 function scalr_login_page() {
     global $scalr_login_error_message;
     if (!empty($scalr_login_error_message)) {
@@ -91,7 +97,6 @@ function scalr_check_and_login_user($email, $password) {
         throw new UserScalrException($response->errorMessage, MY_SCALR_NET_ERROR);
     }
     
-    // TODO : forward cookie
     header('Location: https://my.scalr.net/');
     header('Set-Cookie: ' . $http_response["header"]["Set-Cookie"]);
     die();
