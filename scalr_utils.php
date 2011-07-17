@@ -93,7 +93,7 @@ function scalr_render_template($templateName, $args) {
     
     $content = @file_get_contents($templateFullPath);
     foreach ($args as $key => $value) {
-        $content = str_replace('{' . $key . '}', $value, $content);
+        $content = str_replace('%' . $key . '%', $value, $content);
     }
     
     return $content;
