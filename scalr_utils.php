@@ -1,6 +1,6 @@
 <?php
-function http_post($url, $args) {
-    if (!cURLcheckBasicFunctions()) {
+function scalr_http_post($url, $args) {
+    if (!scalr_check_curl_functions()) {
         return;
     }
     
@@ -8,7 +8,9 @@ function http_post($url, $args) {
     
     $encoded = '';
     foreach($args as $name => $value) {
-      $encoded .= urlencode($name) . '=' . urlencode($value) . '&';
+      // TODO : reactivate urlencode
+      //$encoded .= urlencode($name) . '=' . urlencode($value) . '&';
+      $encoded .= ($name) . '=' . ($value) . '&';
     }
     // chop off last ampersand
     $encoded = substr($encoded, 0, strlen($encoded) - 1);
@@ -35,17 +37,17 @@ function http_post($url, $args) {
     // closes a cURL session and frees all resources
     curl_close($ch);
     
-    return parse_http_response($output);
+    return scalr_parse_http_response($output);
 }
 
-function cURLcheckBasicFunctions() {
+function scalr_check_curl_functions() {
     return function_exists("curl_init") && 
            function_exists("curl_setopt") && 
            function_exists("curl_exec") && 
            function_exists("curl_close"); 
 }
 
-function parse_http_response($response) { 
+function scalr_parse_http_response($response) { 
     // Split response into header and body sections 
     list($response_headers, $response_body) = explode("\r\n\r\n", $response, 2); 
     $response_header_lines = explode("\r\n", $response_headers); 
@@ -68,8 +70,29 @@ function parse_http_response($response) {
     ); 
 }
 
-function var_dump_str($obj) {
+function scalr_var_dump_str($obj) {
     ob_start();
     var_dump($obj);
     return ob_get_clean();
+}
+
+function scalr_render_template($templateName, $args) {
+    $templateFullPath = TEMPLATES_PATH . $templateName;
+    if (!file_exists($templateFullPath)) {
+        throw new AdminScalrException(sprintf(TEMPLATE_NOT_FOUND_MSG, $templateFullPath), TEMPLATE_NOT_FOUND);
+    }
+    
+    $content = @file_get_contents($templateFullPath);
+    foreach ($args as $key => $value) {
+        $content = str_replace('{' . $key . '}', $value, $content);
+    }
+    
+    return $content;
+}
+
+function scalr_email_on_exception($exception) {
+    $content = scalr_render_template('email_on_error.eml', array(
+        'error_message' => $exception,
+    ));
+    wp_mail(get_option('admin_email'), "[Scalr Login] Server Error", $content);
 }
