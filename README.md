@@ -1,0 +1,1 @@
+Plugin to deal with login and signup in Scalr public website
