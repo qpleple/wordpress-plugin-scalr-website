@@ -9,13 +9,30 @@ License: Apache
 */
 
 require_once dirname(__FILE__) . "/scalr_http_utils.php";
+require_once dirname(__FILE__) . "/scalr_exception.php";
 
-// TODO: error handling, no more blank return
 function scalr_login_page() {
-    if (!(isset($_POST['email']) && isset($_POST['password']))) {
+    if (!isset($_POST['email']) || !isset($_POST['password'])) {
         return;
     }
     
+    try {
+        login_user($_POST['email'], $_POST['password']);
+    } catch (Exception $e) {
+        echo '<div id="login-error">';
+        if ($e instanceof ScalrException) {
+            echo $e->getMessage();
+        } else {
+            email_on_exception($e);
+            echo "Oops, something went wrong. An email has been sent to us. Contact support if you cannot login anymore.";
+        }
+        echo '</div>';
+    }
+
+}
+add_shortcode('scalr_login_page', 'scalr_login_page');
+
+function login_user($email, $pass) {
     //// Test email valid
     //if (!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
     //    return;
@@ -40,4 +57,7 @@ function scalr_login_page() {
         return;
     }
 }
-add_shortcode('scalr_login_page', 'scalr_login_page');
+
+function email_on_exception($exception) {
+    # code...
+}
