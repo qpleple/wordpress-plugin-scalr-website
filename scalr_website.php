@@ -13,7 +13,21 @@ require_once dirname(__FILE__) . "/scalr_exceptions.php";
 
 define("TEMPLATES_PATH", dirname(__FILE__) . "/templates/");
 
-function scalr_login_page() {
+add_action('send_headers', 'scalr_send_headers', 10, 1);
+add_shortcode('scalr_login_page', 'scalr_login_page');
+
+/**
+ * This function will be called on every page
+ */
+function scalr_send_headers($WP) {
+    global $scalr_login_error_message;
+    
+    // Excute only on login page
+    if (!preg_match("|^/login(.html)?/?$|", $_SERVER['REQUEST_URI'])) {
+        return;
+    }
+    
+    // Execute only if the login form has been submitted
     if (!isset($_POST['email']) || !isset($_POST['password'])) {
         return;
     }
@@ -21,7 +35,7 @@ function scalr_login_page() {
     try {
         // DEBUG
         //login_user($_POST['email'], $_POST['password']);
-        return scalr_login_user("quentin@melix.net", "blablabla");
+        return scalr_check_and_login_user("quentin@melix.net", "blablabla");
     } catch (Exception $e) {
         if ($e instanceof UserScalrException) {
             return scalr_render_template('error.html', array(
@@ -35,10 +49,17 @@ function scalr_login_page() {
             ));
         }
     }
+    
 }
-add_shortcode('scalr_login_page', 'scalr_login_page');
 
-function scalr_login_user($email, $password) {
+function scalr_login_page() {
+    global $scalr_login_error_message;
+    if (!empty($scalr_login_error_message)) {
+        return $scalr_login_error_message;
+    }
+}
+
+function scalr_check_and_login_user($email, $password) {
     if (empty($email)) {
         throw new UserScalrException(EMAIL_EMPTY_MSG, EMAIL_EMPTY);
     }
@@ -70,9 +91,9 @@ function scalr_login_user($email, $password) {
         throw new UserScalrException($response->errorMessage, MY_SCALR_NET_ERROR);
     }
     
-    // success
     // TODO : forward cookie
-    // TODO : redirect to http://my.scalr.net
-    return "SUCCESS";
+    header('Location: https://my.scalr.net/');
+    header('Set-Cookie: ' . $http_response["header"]["Set-Cookie"]);
+    die();
 }
 
